@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WasteLens AI • Deep Learning Waste Classifier</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.75);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(52, 211, 153, 0.4);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-emerald: #10b981;
+            --accent-cyan: #06b6d4;
+            --accent-indigo: #6366f1;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-stack);
+            background-color: var(--bg-primary);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.08) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 30px 20px 60px;
+        }
+
+        .app-header {
+            margin-bottom: 35px;
+            padding-bottom: 25px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .brand-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2));
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+        }
+
+        .app-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff 40%, #a7f3d0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tagline {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: #6ee7b7;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-emerald);
+            box-shadow: 0 0 8px var(--accent-emerald);
+        }
+
+        .model-chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .tech-chip {
+            padding: 3px 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            align-items: start;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-switcher {
+            display: flex;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px;
+            border-radius: var(--radius-md);
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 7px;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: var(--radius-md);
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent-emerald);
+            background: rgba(16, 185, 129, 0.04);
+        }
+
+        .drop-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+        }
+
+        .drop-primary-text {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .drop-secondary-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .camera-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .camera-container.active {
+            display: flex;
+        }
+
+        .camera-viewfinder {
+            position: relative;
+            width: 100%;
+            max-width: 380px;
+            height: 280px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: #000;
+            border: 1px solid var(--border-color);
+        }
+
+        #cameraVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 180px;
+            height: 180px;
+            border: 2px dashed rgba(255, 255, 255, 0.4);
+            border-radius: 12px;
+            pointer-events: none;
+        }
+
+        .camera-actions {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .btn-capture {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, var(--accent-emerald), #059669);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: opacity 0.2s ease;
+        }
+
+        .btn-capture:hover {
+            opacity: 0.9;
+        }
+
+        .samples-wrapper {
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .samples-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .samples-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .sample-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .sample-chip:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: var(--text-primary);
+            transform: translateY(-1px);
+        }
+
+        .preview-pane {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius-md);
+            margin-bottom: 20px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+
+        .preview-img {
+            max-width: 100%;
+            max-height: 240px;
+            object-fit: contain;
+            display: none;
+            border-radius: 8px;
+        }
+
+        .preview-placeholder {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .prediction-banner {
+            display: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 18px 20px;
+            margin-bottom: 18px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .prediction-banner::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--banner-accent, var(--accent-emerald));
+        }
+
+        .prediction-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 6px;
+        }
+
+        .prediction-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .confidence-val {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--banner-accent, var(--accent-emerald));
+        }
+
+        .confidence-bar-outer {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .confidence-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--banner-accent, var(--accent-emerald));
+            border-radius: 3px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .eco-box {
+            display: none;
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            margin-bottom: 18px;
+        }
+
+        .eco-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #6ee7b7;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .eco-bin {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(16, 185, 129, 0.15);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #a7f3d0;
+            margin-bottom: 6px;
+        }
+
+        .eco-tip {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .breakdown-box {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .breakdown-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .breakdown-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .breakdown-row {
+            display: grid;
+            grid-template-columns: 110px 1fr 50px;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.82rem;
+        }
+
+        .breakdown-lbl {
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .breakdown-meter {
+            height: 5px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .breakdown-meter-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-indigo);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .breakdown-pct {
+            text-align: right;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .spinner-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(16, 185, 129, 0.2);
+            border-top-color: var(--accent-emerald);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-msg {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+        }
+
+        .diagnostics-row {
+            display: none;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            justify-content: space-between;
+        }
+
+        .app-footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        @media (max-width: 860px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .samples-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand-row">
+                <div class="logo-group">
+                    <div class="logo-icon">♻️</div>
+                    <div>
+                        <h1 class="app-title">WasteLens AI</h1>
+                        <p class="tagline">Real-Time Multi-Class Waste Classification powered by Convolutional Neural Networks</p>
+                    </div>
+                </div>
+                <div class="status-badge">
+                    <span class="status-dot"></span>
+                    <span id="backendStatus">Checking Backend...</span>
+                </div>
+            </div>
+            <div class="model-chips">
+                <span class="tech-chip">MobileNetV2 Transfer Learning</span>
+                <span class="tech-chip">9 Waste Classes</span>
+                <span class="tech-chip">Multi-Dataset: 15,323 Images</span>
+                <span class="tech-chip">Val Accuracy: 85.1%</span>
+                <span class="tech-chip">Multi-Crop TTA</span>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="main-grid">
+            <!-- Left Column: Input Source -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">📥 Select Input Source</h2>
+                </div>
+
+                <!-- Input Source Tabs -->
+                <div class="tab-switcher">
+                    <button class="tab-btn active" id="tabUpload" onclick="switchMode('upload')">
+                        📁 File Upload
+                    </button>
+                    <button class="tab-btn" id="tabCamera" onclick="switchMode('camera')">
+                        📷 Live Camera
+                    </button>
+                </div>
+
+                <!-- Mode 1: File Drop Zone -->
+                <div id="uploadView">
+                    <div class="drop-zone" id="dropZone">
+                        <div class="drop-icon">📤</div>
+                        <div class="drop-primary-text">Drag & drop waste photo here</div>
+                        <div class="drop-secondary-text">or click to browse from device (JPG, PNG, WEBP)</div>
+                    </div>
+                    <input type="file" id="filePicker" accept="image/*" style="display: none;" />
+                </div>
+
+                <!-- Mode 2: Camera View -->
+                <div id="cameraView" class="camera-container">
+                    <div class="camera-viewfinder">
+                        <video id="cameraVideo" autoplay playsinline muted></video>
+                        <div class="camera-crosshair"></div>
+                    </div>
+                    <div class="camera-actions">
+                        <button class="btn-capture" id="captureBtn" onclick="capturePhoto()">
+                            📸 Snap & Classify
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sample Test Images Tray -->
+                <div class="samples-wrapper">
+                    <div class="samples-label">⚡ Quick Test Gallery (Click any class)</div>
+                    <div class="samples-grid">
+                        <div class="sample-chip" onclick="loadSample('cardboard.jpg')">📦 Cardboard</div>
+                        <div class="sample-chip" onclick="loadSample('food_organics.jpg')">🍏 Organics</div>
+                        <div class="sample-chip" onclick="loadSample('glass.jpg')">🍾 Glass</div>
+                        <div class="sample-chip" onclick="loadSample('metal.jpg')">🥫 Metal</div>
+                        <div class="sample-chip" onclick="loadSample('miscellaneous_trash.jpg')">🗑️ Misc Trash</div>
+                        <div class="sample-chip" onclick="loadSample('paper.jpg')">📄 Paper</div>
+                        <div class="sample-chip" onclick="loadSample('plastic.jpg')">🥤 Plastic</div>
+                        <div class="sample-chip" onclick="loadSample('textile_trash.jpg')">👕 Textile</div>
+                        <div class="sample-chip" onclick="loadSample('vegetation.jpg')">🌿 Vegetation</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Live Analysis & Results -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">📊 Classification Output</h2>
+                </div>
+
+                <!-- Preview Box -->
+                <div class="preview-pane">
+                    <div class="preview-placeholder" id="previewPlaceholder">
+                        Upload or capture an image to run deep learning inference
+                    </div>
+                    <img id="previewImg" class="preview-img" alt="Input Preview" />
+                </div>
+
+                <!-- Loading State -->
+                <div class="spinner-container" id="spinner">
+                    <div class="spinner"></div>
+                    <div class="loading-msg">Running CNN inference with Test-Time Augmentation...</div>
+                </div>
+
+                <!-- Primary Result Banner -->
+                <div class="prediction-banner" id="predictionBanner">
+                    <div class="prediction-top">
+                        <div class="prediction-name" id="predName">
+                            <span id="predEmoji">♻️</span> <span id="predClass">-</span>
+                        </div>
+                        <div class="confidence-val" id="predConfidence">0.0%</div>
+                    </div>
+                    <div class="confidence-bar-outer">
+                        <div class="confidence-bar-fill" id="predBar"></div>
+                    </div>
+                </div>
+
+                <!-- Eco-Disposal Recommendation Box -->
+                <div class="eco-box" id="ecoBox">
+                    <div class="eco-header">🌱 Disposal & Recycling Guide</div>
+                    <div class="eco-bin" id="ecoBin">-</div>
+                    <div class="eco-tip" id="ecoTip">-</div>
+                </div>
+
+                <!-- Top Probability Breakdown -->
+                <div class="breakdown-box" id="breakdownBox">
+                    <div class="breakdown-title">Class Probability Breakdown</div>
+                    <div class="breakdown-list" id="breakdownList"></div>
+                </div>
+
+                <!-- Diagnostics Footer -->
+                <div class="diagnostics-row" id="diagRow">
+                    <span>Preprocessing: EXIF Auto-Orient & Square Crop</span>
+                    <span>TTA: 4 Multi-Scale Crops</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden canvas for camera snaps -->
+        <canvas id="snapshotCanvas" style="display: none;"></canvas>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p><strong>WasteLens AI</strong> • Deep Learning Computer Vision Project</p>
+            <p style="margin-top: 4px;">Trained on Multi-Dataset (15,323 Images across 6 Repositories) • MobileNetV2 Architecture</p>
+        </footer>
+    </div>
+
+    <script>
+        const DIRECT_API = 'https://chrome-moustache-opacity.ngrok-free.dev';
+        const PROXY_API = window.location.origin.includes('http') && !window.location.origin.startsWith('file:')
+            ? window.location.origin
+            : DIRECT_API;
+        const API_ENDPOINTS = [
+            `${PROXY_API}/predict`,
+            `${DIRECT_API}/predict`
+        ];
+
+        let currentStream = null;
+        const dropZone = document.getElementById('dropZone');
+        const filePicker = document.getElementById('filePicker');
+        const previewImg = document.getElementById('previewImg');
+        const previewPlaceholder = document.getElementById('previewPlaceholder');
+        const spinner = document.getElementById('spinner');
+        const predictionBanner = document.getElementById('predictionBanner');
+        const ecoBox = document.getElementById('ecoBox');
+        const breakdownBox = document.getElementById('breakdownBox');
+        const diagRow = document.getElementById('diagRow');
+
+        window.addEventListener('load', checkStatus);
+
+        async function checkStatus() {
+            for (const ep of API_ENDPOINTS) {
+                try {
+                    const res = await fetch(ep, { 
+                        method: 'OPTIONS',
+                        headers: { 'ngrok-skip-browser-warning': 'true' }
+                    });
+                    if (res.ok || res.status === 204) {
+                        document.getElementById('backendStatus').textContent = 'Live Cloud Active (Online)';
+                        return;
+                    }
+                } catch (e) {}
+            }
+            document.getElementById('backendStatus').textContent = 'System Ready';
+        }
+
+        function switchMode(mode) {
+            const uploadBtn = document.getElementById('tabUpload');
+            const cameraBtn = document.getElementById('tabCamera');
+            const uploadView = document.getElementById('uploadView');
+            const cameraView = document.getElementById('cameraView');
+
+            if (mode === 'upload') {
+                uploadBtn.classList.add('active');
+                cameraBtn.classList.remove('active');
+                uploadView.style.display = 'block';
+                cameraView.classList.remove('active');
+                stopCamera();
+            } else {
+                cameraBtn.classList.add('active');
+                uploadBtn.classList.remove('active');
+                uploadView.style.display = 'none';
+                cameraView.classList.add('active');
+                startCamera();
+            }
+        }
+
+        async function startCamera() {
+            const video = document.getElementById('cameraVideo');
+            try {
+                currentStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+                });
+                video.srcObject = currentStream;
+            } catch (err) {
+                alert('Camera access denied or unavailable: ' + err.message);
+                switchMode('upload');
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+        }
+
+        // Downscale camera snapshot to optimal resolution for CNN (640px max)
+        function capturePhoto() {
+            const video = document.getElementById('cameraVideo');
+            const canvas = document.getElementById('snapshotCanvas');
+            if (!video.videoWidth) return;
+
+            const maxDim = 640;
+            let w = video.videoWidth;
+            let h = video.videoHeight;
+            if (w > maxDim || h > maxDim) {
+                if (w > h) {
+                    h = Math.round((h * maxDim) / w);
+                    w = maxDim;
+                } else {
+                    w = Math.round((w * maxDim) / h);
+                    h = maxDim;
+                }
+            }
+
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, w, h);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            showPreview(dataUrl);
+            submitPrediction({ image: dataUrl }, true);
+        }
+
+        dropZone.addEventListener('click', () => {
+            filePicker.value = '';
+            filePicker.click();
+        });
+
+        filePicker.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        // Optimize uploaded image files to max 800px to ensure fast transfer on mobile
+        function optimizeImageFile(file, maxDim = 800, quality = 0.85) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) {
+                            h = Math.round((h * maxDim) / w);
+                            w = maxDim;
+                        } else {
+                            w = Math.round((w * maxDim) / h);
+                            h = maxDim;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    canvas.toBlob((blob) => {
+                        resolve(blob || file);
+                    }, 'image/jpeg', quality);
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    resolve(file);
+                };
+                img.src = url;
+            });
+        }
+
+        async function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => showPreview(e.target.result);
+            reader.readAsDataURL(file);
+
+            try {
+                const optimizedBlob = await optimizeImageFile(file, 800, 0.85);
+                const formData = new FormData();
+                formData.append('file', optimizedBlob, file.name || 'image.jpg');
+                await submitPrediction(formData, false);
+            } catch (err) {
+                const formData = new FormData();
+                formData.append('file', file);
+                await submitPrediction(formData, false);
+            }
+        }
+
+        function showPreview(url) {
+            previewImg.src = url;
+            previewImg.style.display = 'block';
+            previewPlaceholder.style.display = 'none';
+        }
+
+        async function loadSample(filename) {
+            const sampleUrl = `${PROXY_API}/sample/${filename}`;
+            showPreview(sampleUrl);
+
+            try {
+                setLoading(true);
+                let res = await fetch(sampleUrl, {
+                    headers: { 'ngrok-skip-browser-warning': 'true' }
+                });
+                if (!res.ok) {
+                    res = await fetch(`${DIRECT_API}/sample/${filename}`, {
+                        headers: { 'ngrok-skip-browser-warning': 'true' }
+                    });
+                }
+                const blob = await res.blob();
+                const formData = new FormData();
+                formData.append('file', blob, filename);
+                await submitPrediction(formData, false);
+            } catch (err) {
+                setLoading(false);
+                alert('Could not load sample: ' + err.message);
+            }
+        }
+
+        // Resilient prediction runner with automatic failover and safe JSON validation
+        async function submitPrediction(body, isJson = false) {
+            setLoading(true);
+            let lastError = null;
+
+            for (let i = 0; i < API_ENDPOINTS.length; i++) {
+                const endpoint = API_ENDPOINTS[i];
+                try {
+                    const fetchOptions = {
+                        method: 'POST',
+                        headers: {
+                            'ngrok-skip-browser-warning': 'true'
+                        }
+                    };
+                    if (isJson) {
+                        fetchOptions.headers['Content-Type'] = 'application/json';
+                        fetchOptions.body = JSON.stringify(body);
+                    } else {
+                        fetchOptions.body = body;
+                    }
+
+                    const res = await fetch(endpoint, fetchOptions);
+                    const contentType = res.headers.get('content-type') || '';
+
+                    if (contentType.includes('application/json')) {
+                        const data = await res.json();
+                        if (res.ok && data && data.class) {
+                            setLoading(false);
+                            renderResults(data);
+                            return; // Successfully classified!
+                        } else {
+                            throw new Error(data.error || `Server status ${res.status}`);
+                        }
+                    } else {
+                        const errorSnippet = await res.text();
+                        console.warn(`Endpoint ${endpoint} returned non-JSON (${res.status}). Failing over...`);
+                        throw new Error(`Proxy error (${res.status})`);
+                    }
+                } catch (err) {
+                    console.warn(`Inference attempt via ${endpoint} failed: ${err.message}.`);
+                    lastError = err;
+                }
+            }
+
+            setLoading(false);
+            alert('Classification service temporarily busy or disconnected. Please check your internet connection and try again.');
+        }
+
+        function setLoading(isLoading) {
+            spinner.style.display = isLoading ? 'flex' : 'none';
+            if (isLoading) {
+                predictionBanner.style.display = 'none';
+                ecoBox.style.display = 'none';
+                breakdownBox.style.display = 'none';
+                diagRow.style.display = 'none';
+            }
+        }
+
+        function renderResults(data) {
+            document.getElementById('predClass').textContent = data.class;
+            document.getElementById('predEmoji').textContent = data.emoji || '♻️';
+            document.getElementById('predConfidence').textContent = `${data.confidence_percent}%`;
+            
+            const bar = document.getElementById('predBar');
+            bar.style.width = '0%';
+            bar.style.background = data.color || '#10b981';
+            predictionBanner.style.setProperty('--banner-accent', data.color || '#10b981');
+            predictionBanner.style.display = 'block';
+
+            setTimeout(() => {
+                bar.style.width = `${data.confidence_percent}%`;
+            }, 50);
+
+            document.getElementById('ecoBin').textContent = `Recommended Bin: ${data.bin}`;
+            document.getElementById('ecoTip').textContent = data.tip;
+            ecoBox.style.display = 'block';
+
+            const breakdownList = document.getElementById('breakdownList');
+            breakdownList.innerHTML = '';
+            if (data.all_predictions && data.all_predictions.length > 0) {
+                data.all_predictions.slice(0, 5).forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'breakdown-row';
+                    row.innerHTML = `
+                        <div class="breakdown-lbl">${item.emoji} ${item.class}</div>
+                        <div class="breakdown-meter">
+                            <div class="breakdown-meter-fill" style="width: ${item.confidence}%; background: ${item.color};"></div>
+                        </div>
+                        <div class="breakdown-pct">${item.confidence}%</div>
+                    `;
+                    breakdownList.appendChild(row);
+                });
+                breakdownBox.style.display = 'block';
+            }
+
+            diagRow.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

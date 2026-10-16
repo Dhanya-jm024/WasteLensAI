@@ -1,0 +1,9 @@
+flask
+werkzeug
+tensorflow
+numpy
+pillow
+kagglehub
+matplotlib
+requests
+gunicorn

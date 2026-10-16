@@ -723,13 +723,15 @@
     </div>
 
     <script>
-        const DIRECT_API = 'https://chrome-moustache-opacity.ngrok-free.dev';
+        const RENDER_API = 'https://wastelensai-backend.onrender.com';
+        const NGROK_API = 'https://chrome-moustache-opacity.ngrok-free.dev';
         const PROXY_API = window.location.origin.includes('http') && !window.location.origin.startsWith('file:')
             ? window.location.origin
-            : DIRECT_API;
+            : RENDER_API;
         const API_ENDPOINTS = [
             `${PROXY_API}/predict`,
-            `${DIRECT_API}/predict`
+            `${RENDER_API}/predict`,
+            `${NGROK_API}/predict`
         ];
 
         let currentStream = null;
@@ -926,7 +928,10 @@
                     headers: { 'ngrok-skip-browser-warning': 'true' }
                 });
                 if (!res.ok) {
-                    res = await fetch(`${DIRECT_API}/sample/${filename}`, {
+                    res = await fetch(`${RENDER_API}/sample/${filename}`);
+                }
+                if (!res.ok) {
+                    res = await fetch(`${NGROK_API}/sample/${filename}`, {
                         headers: { 'ngrok-skip-browser-warning': 'true' }
                     });
                 }

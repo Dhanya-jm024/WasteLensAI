@@ -12,35 +12,70 @@ PROJECT_ROOT = os.path.dirname(BASE_DIR)
 TEMPLATE_DIR = os.path.join(BASE_DIR, 'frontend/templates')
 STATIC_DIR = os.path.join(BASE_DIR, 'frontend/static')
 SAMPLES_DIR = os.path.join(PROJECT_ROOT, 'sample_images')
-MODEL_PATH = os.path.join(PROJECT_ROOT, 'Model/waste_classifier.h5')
+# Model paths (prefer TFLite for fast, low-memory cloud hosting)
+TFLITE_MODEL_PATH = os.path.join(PROJECT_ROOT, 'Model/waste_classifier.tflite')
+H5_MODEL_PATH = os.path.join(PROJECT_ROOT, 'Model/waste_classifier.h5')
 
 from flask import Flask, render_template, request, jsonify, send_from_directory
 
-# Optimize TensorFlow logging
+# Configure logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_NUM_INTEROP_THREADS'] = '1'
 os.environ['TF_NUM_INTRAOP_THREADS'] = '1'
 
-import tensorflow as tf
-tf.get_logger().setLevel('ERROR')
+# Lazy optional TensorFlow import (so cloud instances with only tflite-runtime don't crash)
+try:
+    import tensorflow as tf
+    tf.get_logger().setLevel('ERROR')
+except ImportError:
+    tf = None
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20MB max upload
 
 # Global model holder and thread lock
 model = None
+is_tflite = False
+tflite_input_details = None
+tflite_output_details = None
 predict_lock = threading.Lock()
 
 
 def get_model():
-    """Load model once and cache in memory"""
-    global model
+    """Load model once and cache in memory (preferring TFLite for <50MB RAM usage)"""
+    global model, is_tflite, tflite_input_details, tflite_output_details
     if model is None:
-        if not os.path.exists(MODEL_PATH):
-            raise FileNotFoundError(f"Model weights not found at: {MODEL_PATH}")
-        print("📦 Loading Deep Learning model...")
-        model = tf.keras.models.load_model(MODEL_PATH)
-        print("✅ Deep Learning model ready for inference!")
+        # 1. Prefer TFLite (ultra-fast, lightweight, Render 512MB free-tier safe)
+        if os.path.exists(TFLITE_MODEL_PATH):
+            try:
+                try:
+                    import tflite_runtime.interpreter as tflite
+                except ImportError:
+                    from tensorflow import lite as tflite
+                
+                print(f"📦 Loading optimized TFLite model from: {TFLITE_MODEL_PATH}")
+                interpreter = tflite.Interpreter(model_path=TFLITE_MODEL_PATH)
+                interpreter.allocate_tensors()
+                tflite_input_details = interpreter.get_input_details()
+                tflite_output_details = interpreter.get_output_details()
+                model = interpreter
+                is_tflite = True
+                print("✅ TFLite model ready for inference (<50MB RAM footprint)!")
+                return model
+            except Exception as e:
+                print(f"⚠️ Failed to initialize TFLite ({e}), checking for H5 fallback...")
+
+        # 2. Fallback to Keras H5 model
+        if os.path.exists(H5_MODEL_PATH):
+            if tf is None:
+                raise RuntimeError("TensorFlow is not installed to load .h5 weights.")
+            print(f"📦 Loading Keras H5 model from: {H5_MODEL_PATH}")
+            model = tf.keras.models.load_model(H5_MODEL_PATH)
+            is_tflite = False
+            print("✅ Keras H5 model ready for inference!")
+            return model
+
+        raise FileNotFoundError(f"No valid model found at {TFLITE_MODEL_PATH} or {H5_MODEL_PATH}")
     return model
 
 # Class taxonomy & metadata
@@ -163,7 +198,16 @@ def preprocess_and_predict(pil_img):
     
     loaded_model = get_model()
     with predict_lock:
-        raw_preds = loaded_model.predict(batch, verbose=0)
+        if is_tflite:
+            in_idx = tflite_input_details[0]['index']
+            out_idx = tflite_output_details[0]['index']
+            loaded_model.resize_tensor_input(in_idx, [4, 224, 224, 3])
+            loaded_model.allocate_tensors()
+            loaded_model.set_tensor(in_idx, batch)
+            loaded_model.invoke()
+            raw_preds = loaded_model.get_tensor(out_idx)
+        else:
+            raw_preds = loaded_model.predict(batch, verbose=0)
     
     # Weight: 0.35 for full views, 0.15 for zoomed views
     weights = np.array([0.35, 0.35, 0.15, 0.15], dtype=np.float32)
@@ -257,8 +301,18 @@ if __name__ == '__main__':
     # Pre-warm model on startup
     try:
         m = get_model()
-        dummy_input = np.zeros((1, 224, 224, 3), dtype=np.float32)
-        m.predict(dummy_input, verbose=0)
+        dummy_input = np.zeros((4, 224, 224, 3), dtype=np.float32)
+        with predict_lock:
+            if is_tflite:
+                in_idx = tflite_input_details[0]['index']
+                out_idx = tflite_output_details[0]['index']
+                m.resize_tensor_input(in_idx, [4, 224, 224, 3])
+                m.allocate_tensors()
+                m.set_tensor(in_idx, dummy_input)
+                m.invoke()
+                _ = m.get_tensor(out_idx)
+            else:
+                m.predict(dummy_input, verbose=0)
         print("⚡ Model pre-warmed and ready for immediate high-speed inference!\n")
     except Exception as e:
         print(f"⚠️ Pre-warm skipped: {e}")

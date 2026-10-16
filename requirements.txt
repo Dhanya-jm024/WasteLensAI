@@ -1,9 +1,7 @@
-flask
-werkzeug
-tensorflow
-numpy
-pillow
-kagglehub
-matplotlib
-requests
-gunicorn
+flask>=2.3.0
+werkzeug>=2.3.0
+pillow>=9.5.0
+numpy>=1.23.0,<2.0.0
+gunicorn>=21.2.0
+tflite-runtime==2.14.0; sys_platform == 'linux'
+tensorflow>=2.10.0; sys_platform != 'linux'

@@ -53,8 +53,8 @@ Thumbs.db
 .coverage
 htmlcov/
 
-# Model files (optional, uncomment if you want to exclude)
-# Model/*.h5
+# Model files (exclude large .h5, keep optimized .tflite)
+Model/*.h5
 
 # Archives
 *.zip

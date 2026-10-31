@@ -294,8 +294,8 @@ if __name__ == '__main__':
     print("  ♻️  WasteLens AI - Deep Learning Classifier Server")
     print("="*65)
     print(f"  📁 Project Root: {PROJECT_ROOT}")
-    active_path = TFLITE_MODEL_PATH if os.path.exists(TFLITE_MODEL_PATH) else H5_MODEL_PATH
-    print(f"  🤖 Model Path:   {active_path}")
+    print(f"  🤖 TFLite Model: {TFLITE_MODEL_PATH}")
+    print(f"  🤖 H5 Model:     {H5_MODEL_PATH}")
     print(f"  🌐 Local Server: http://localhost:8000")
     print("="*65 + "\n")
     
